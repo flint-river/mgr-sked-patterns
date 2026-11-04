@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Four-Person 2080 Rotation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Layout: ops-board. Controls, then the summary and ranking, then the cycle or year grid, then coverage and rules. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --fg:#17202b; --muted:#5b6878; --line:#d9dfe7;
+  --accent:#1f5fa8; --accent-ink:#ffffff;
+  --am:#e7a33a; --am-ink:#3d2600;
+  --pm:#3d4fa3; --pm-ink:#ffffff;
+  --sd:#c98a2a; --sd-ink:#2a1a00;
+  --pe:#7d8ad0; --pe-ink:#0d1020;
+  --rl:#2c8c7d; --rl-soft:#d5eeea;
+  --stripe:rgba(255,255,255,.45); --off:#eef1f5; --off-ink:#9aa6b4; --wknd:#f6dfe7; --wknd-ink:#a8325e;
+  --win:#dbe7f6; --good:#2e7d4f; --good-soft:#dcefe3; --bad:#c0392b; --bad-soft:#fbe3e0;
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --surface:#161d27; --fg:#e4e9f0; --muted:#93a0b0; --line:#2a3442;
+  --accent:#6fa8ec; --accent-ink:#0b1420;
+  --am:#e7a33a; --am-ink:#2a1a00;
+  --pm:#6c7fd6; --pm-ink:#0d1020;
+  --sd:#c98a2a; --sd-ink:#1d1200;
+  --pe:#4a5aa8; --pe-ink:#ffffff;
+  --rl:#3fb3a1; --rl-soft:#163a35;
+  --stripe:rgba(0,0,0,.35); --off:#1b2330; --off-ink:#566375; --wknd:#3a1f2c; --wknd-ink:#f08ab0;
+  --win:#1d2b3e; --good:#5cc78a; --good-soft:#173324; --bad:#ff7a6b; --bad-soft:#3d1c19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --surface:#161d27; --fg:#e4e9f0; --muted:#93a0b0; --line:#2a3442;
+  --accent:#6fa8ec; --accent-ink:#0b1420;
+  --am:#e7a33a; --am-ink:#2a1a00;
+  --pm:#6c7fd6; --pm-ink:#0d1020;
+  --sd:#c98a2a; --sd-ink:#1d1200;
+  --pe:#4a5aa8; --pe-ink:#ffffff;
+  --rl:#3fb3a1; --rl-soft:#163a35;
+  --stripe:rgba(0,0,0,.35); --off:#1b2330; --off-ink:#566375; --wknd:#3a1f2c; --wknd-ink:#f08ab0;
+  --win:#1d2b3e; --good:#5cc78a; --good-soft:#173324; --bad:#ff7a6b; --bad-soft:#3d1c19; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:24px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:.2px}
+h2{font-size:22px;font-weight:600}
+h3{font-size:17px;font-weight:600}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent)}
+.lede{color:var(--muted);max-width:74ch;margin:6px 0 0}
+header{display:grid;gap:6px}
+.picker{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+select{font:inherit;font-family:var(--display);font-size:19px;font-weight:600;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;min-width:0}
+select:disabled{opacity:.5}
+.window{display:grid;gap:2px;min-width:0;margin-left:auto}
+.window b{font-family:var(--mono);font-size:24px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+.window span{font-size:13px;color:var(--muted)}
+.lbl,.controls label{display:grid;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono)}
+.summary{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 16px;display:grid;gap:16px}
+.verdict{display:grid;gap:6px}
+.verdict p{margin:0;max-width:80ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.fact{border-left:3px solid var(--accent);padding:2px 0 2px 12px;display:grid;gap:2px;min-width:0}
+.fact b{font-family:var(--display);font-size:17px;font-weight:600}
+.fact span{font-size:14px;color:var(--muted)}
+.rank td,.rank th{padding:9px 10px;text-align:left;font-size:14px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+.rank thead th{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400;text-transform:uppercase;letter-spacing:.6px}
+.rank td.m{font-family:var(--mono);font-size:13px}
+.rank tbody tr{cursor:pointer}
+.rank tbody tr:hover td{background:var(--off)}
+.rank tbody tr.on td{background:var(--win)}
+.rank tbody tr:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pos{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:600;background:var(--off);color:var(--fg)}
+.pos.first{background:var(--good);color:var(--surface)}
+.meter{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--off);vertical-align:middle;margin-left:8px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--off);color:var(--muted)}
+.sw.wide{width:34px}
+.c .lb.long{font-size:10px;letter-spacing:-.2px}
+.ygrid td .c .lb.long{font-size:7px;letter-spacing:-.3px}
+.c.short,.sw.short{position:relative;background-image:repeating-linear-gradient(135deg,var(--stripe) 0 3px,transparent 3px 7px);outline:2px dashed var(--fg);outline-offset:-3px}
+.c.short sup{position:absolute;top:1px;right:3px;font-size:9px;line-height:1;font-weight:700}
+.ygrid td .c.short sup{display:none}
+.chip.shortchip{border:2px dashed var(--fg);font-weight:600}
+.pill.mix{background:var(--sd);color:var(--sd-ink)}
+.pill.yes{background:var(--good-soft);color:var(--good)}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:8px}
+.chk{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 12px;border-radius:6px;border:1px solid var(--line);min-width:0}
+.chk .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--good-soft);color:var(--good)}
+.chk b{display:block;font-size:14px}
+.chk span{font-size:13px;color:var(--muted)}
+.chk.fail{border-color:var(--bad);background:var(--bad-soft)}
+.chk.fail .ic{background:var(--bad);color:var(--surface)}
+.chk.fail b{color:var(--bad)}
+.chk.fail .why{color:var(--fg);display:block;margin-top:4px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.rulecount{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--good)}
+.rulecount.bad{color:var(--bad)}
+.allok{font-weight:600;color:var(--good)}
+.notok{font-weight:600;color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stat{background:var(--surface);padding:14px 16px;display:grid;gap:2px}
+.stat b{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+section{display:grid;gap:12px}
+.sechead{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+.legend{display:flex;flex-wrap:wrap;gap:10px}
+.chip{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--line)}
+.sw{width:22px;height:18px;border-radius:4px;font-family:var(--mono);font-size:11px;font-weight:600;display:grid;place-items:center;flex:none}
+.A{background:var(--am);color:var(--am-ink)} .P{background:var(--pm);color:var(--pm-ink)}
+.S{background:var(--sd);color:var(--sd-ink)}
+.R,.M,.Q{background:var(--rl-soft);color:var(--rl);box-shadow:inset 0 0 0 2px var(--rl)}
+.E{background:var(--pe);color:var(--pe-ink)}
+.F{background:var(--off);color:var(--fg);box-shadow:inset 0 0 0 2px var(--muted)}
+.X{background:var(--off);color:var(--off-ink)}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+input{font:inherit;font-family:var(--body);font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0;width:150px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.tabs button{font:inherit;font-family:var(--display);font-size:16px;font-weight:600;padding:7px 16px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.grid th,.grid td{padding:0;text-align:center}
+.grid thead th{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--muted);padding:6px 0 4px;min-width:34px}
+.grid thead tr.wk th{font-family:var(--display);font-size:14px;font-weight:600;color:var(--fg);border-bottom:1px solid var(--line);padding:8px 0}
+.grid th.name,.ygrid th.name{position:sticky;left:0;background:var(--surface);text-align:left;padding:0 12px;font-family:var(--body);font-size:14px;font-weight:600;color:var(--fg);min-width:96px;z-index:1;border-right:1px solid var(--line)}
+.grid td{padding:3px 2px}
+.grid td .c{height:30px;border-radius:4px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600}
+.grid td.wkstart{border-left:2px solid var(--line)}
+.grid td.we,.grid th.we,.ygrid td.we,.ygrid th.we{background:var(--wknd)}
+.grid thead th.we,.ygrid thead th.we{color:var(--wknd-ink);font-weight:600;box-shadow:inset 0 3px 0 var(--wknd-ink)}
+.grid thead th.we .dt{color:var(--wknd-ink)}
+.grid td.we .X,.ygrid td.we .X{background:transparent;color:var(--wknd-ink)}
+.grid tr.cov td{font-family:var(--mono);font-size:11px;color:var(--muted);padding:6px 0}
+.grid tr.cov td.we{color:var(--wknd-ink)}
+.grid td.hrs{font-family:var(--mono);font-size:12px;padding:0 12px;color:var(--fg);border-left:1px solid var(--line);white-space:nowrap;text-align:left}
+.grid tbody tr:not(.cov) td,.grid tbody tr:not(.cov) th{border-bottom:1px solid var(--line)}
+.dt{display:block;font-size:10px;color:var(--muted)}
+.today .c{outline:2px solid var(--accent);outline-offset:1px}
+.year{display:grid;gap:18px}
+.month{display:grid;gap:6px}
+.ygrid th,.ygrid td{padding:0;text-align:center}
+.ygrid thead th{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--muted);padding:4px 0;min-width:24px;line-height:1.2}
+.ygrid th.name{font-size:13px;min-width:92px;padding:0 10px}
+.ygrid td{padding:2px 1px}
+.ygrid td .c{height:22px;width:22px;border-radius:3px;display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600}
+.ygrid td.out .c{visibility:hidden}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:12px;min-width:0;align-content:start}
+.cov24{display:grid;gap:6px}
+.covrow{display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:center}
+.covrow span{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.bar{position:relative;height:36px;background:var(--off);border-radius:4px;overflow:hidden}
+.bar .win{position:absolute;top:0;bottom:0;background:var(--win)}
+.seg{position:absolute;height:10px;border-radius:2px}
+.seg.rel{background:repeating-linear-gradient(135deg,var(--rl) 0 4px,transparent 4px 7px);box-shadow:inset 0 0 0 1px var(--rl)}
+.ticks{display:grid;grid-template-columns:62px 1fr;gap:8px}
+.ticks div{position:relative;height:14px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.ticks i{position:absolute;transform:translateX(-50%);font-style:normal}
+.rules{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.rules li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline}
+.rules li b{font-family:var(--mono);font-size:13px;font-weight:600;min-width:72px}
+.note{font-size:13px;color:var(--muted);max-width:80ch;margin:0}
+.onduty{display:grid;gap:8px}
+.onduty .row{display:flex;gap:10px;align-items:center;font-size:14px;flex-wrap:wrap}
+.onduty .time{font-family:var(--mono);font-size:13px;color:var(--muted);margin-left:auto}
+.onduty .sub{flex-basis:100%;font-size:12px;color:var(--muted);padding-left:32px}
+.totals td,.totals th{padding:7px 10px;text-align:right;font-family:var(--mono);font-size:13px;border-bottom:1px solid var(--line);white-space:nowrap}
+.totals th:first-child,.totals td:first-child{text-align:left;font-family:var(--body);font-weight:600}
+.totals thead th{font-size:11px;color:var(--muted);font-weight:400;text-transform:uppercase;letter-spacing:.6px}
+@media (prefers-reduced-motion:no-preference){.grid td .c{transition:transform .12s}.grid td .c:hover{transform:scale(1.08)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1>Four-Person 2080 Rotation</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <div class="picker">
+    <label class="lbl" for="len">Shift length
+      <select id="len">
+        <option value="8">8-hour</option>
+        <option value="10" selected>10-hour</option>
+        <option value="12">12-hour</option>
+      </select>
+    </label>
+    <label class="lbl" for="st">Day starts
+      <select id="st">
+        <option value="5" selected>0500</option>
+        <option value="6">0600</option>
+        <option value="7">0700</option>
+        <option value="8">0800</option>
+      </select>
+    </label>
+    <div class="window"><span>Daily coverage window</span><b id="win"></b><span id="winnote"></span></div>
+  </div>
+
+  <section class="summary" aria-labelledby="rankh">
+    <h2 id="rankh">Shifts ranked by efficiency</h2>
+    <div style="overflow-x:auto"><table class="rank" style="width:100%" id="rank"></table></div>
+    <p class="note">Efficiency is the share of paid hours that land on a covered hour of the clock. Turnover overlap counts against it. Relief days count against it too, but they are what covers vacation and sick leave, so more relief is not waste. Days worked and days off are per person over a 52-week year (364 days); the year view shows the exact count for your 365 days. Ties go to the option that meets more rules. "Mixed" means a line works more than one shift length, for example 12-hour and 8-hour shifts in the same week. Every option uses only 8-, 10- and 12-hour shifts, keeps exactly one Days and one Evenings shift per day, at least 2 days off in a row, never more than 40 hours or 5 days in a week, and ends the day by midnight. Click a row to switch to that option.</p>
+  </section>
+
+  <section class="summary" aria-labelledby="sumh">
+    <div class="verdict">
+      <h2 id="sumh">Summary</h2>
+      <p id="verdict"></p>
+    </div>
+    <div class="facts" id="facts"></div>
+    <div>
+      <h3 style="margin-bottom:4px">Rules check</h3>
+      <p class="note" id="checkhead" style="margin-bottom:10px"></p>
+      <div class="checks" id="checks"></div>
+    </div>
+  </section>
+
+  <div class="stats" id="stats"></div>
+
+  <section>
+    <div class="sechead">
+      <div class="tabs" role="group" aria-label="View">
+        <button type="button" id="vCycle" aria-pressed="true">28-day cycle</button>
+        <button type="button" id="vYear" aria-pressed="false">Full year</button>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="controls">
+      <label for="start">Cycle start date<input type="date" id="start"></label>
+      <label for="n0">Line 1<input id="n0" value="Person 1"></label>
+      <label for="n1">Line 2<input id="n1" value="Person 2"></label>
+      <label for="n2">Line 3<input id="n2" value="Person 3"></label>
+      <label for="n3">Line 4<input id="n3" value="Person 4"></label>
+      <label for="n4" id="n4lbl" hidden>Line 5<input id="n4" value="Person 5"></label>
+    </div>
+    <div id="cycleView"><div class="scroll"><table class="grid" id="grid"></table></div></div>
+    <div id="yearView" hidden>
+      <p class="note" id="yearlbl" style="margin-bottom:12px"></p>
+      <div class="year" id="year"></div>
+    </div>
+    <p class="note">Relief days (outlined) are spare capacity: the relief person covers whoever is on leave, and works as an extra if no one is out. Weekday labels and weekend shading follow the real calendar for the start date you pick. The start date defaults to January 1 of next year. Each line is anchored to the weekday, so weekends stay balanced whatever date you pick. <span id="payline"></span> Pay periods start on the cycle start date.</p>
+  </section>
+
+  <section class="panel" id="yearTotalsPanel" hidden>
+    <h2>Year totals by person</h2>
+    <div style="overflow-x:auto"><table class="totals" style="width:100%" id="ytotals"></table></div>
+    <p class="note">Hours above 2,080 come from day 365 (and 366 in a leap year), which is the first day of the next cycle. Over any 364-day span every person works exactly 2,080.</p>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <h2>Hourly coverage</h2>
+      <p class="note" id="covlbl"></p>
+      <div class="cov24" id="cov"></div>
+      <div class="ticks"><span></span><div id="ticks"></div></div>
+    </section>
+    <section class="panel">
+      <h2>On duty</h2>
+      <label class="lbl" for="day">Pick any date<input type="date" id="day"></label>
+      <div class="onduty" id="duty"></div>
+      <h3 style="margin-top:8px">Each person, per 28-day cycle</h3>
+      <div style="overflow-x:auto"><table class="totals" style="width:100%" id="totals"></table></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Built-in rules</h2>
+    <ul class="rules" id="rules"></ul>
+    <p class="note" id="math"></p>
+  </section>
+</div>
+
+<script>
+/* Lines are solver-built and checked for every start time: one Days and one Evenings shift per day,
+   80 hours per pay period, equal weekend days, and at least 11 hours of rest (including relief swaps).
+   Shift clock times are derived from the start time and shift length, so the lines hold for any start. */
+var BASE={
+  "8":{name:"8-hour",span:16,
+    types:{A:["Days",8,"start","day"],P:["Evenings",8,"end","ev"],R:["Relief",8,"mid","rel"]},
+    lines:["..AAAAAAA..PPPPPPP..RRRRRR..", "RRRRR....AAAAAAA..PPPPPPP..R", "PPPP..RRRRRR....AAAAAAA..PPP", "AA..PPPPPPP..RRRRRR....AAAAA"],
+    blocks:"Exactly five 8-hour shifts in every Monday-to-Sunday week. A stretch can run 6 or 7 days when it crosses from one week into the next; that is what lets the days off rotate and keeps relief to one person per day.",
+    weekend:"5 weekend days per cycle and 1 full weekend off."},
+  "10":{name:"10-hour",span:20,
+    types:{A:["Days",10,"start","day"],P:["Evenings",10,"end","ev"],R:["Relief",10,"mid","rel","AP"]},
+    lines:[".RPP..PPP...AAA..RPP..AAAA..", ".AAAA...RPP..PPP...AAA..RPP.", "PP...AAA..RPP..AAAA...RPP..P", "A..RPP..AAAA...RPP..PPP...AA"],
+    blocks:"Exactly four 10-hour shifts every week, in stretches of 3 or 4 days.",
+    weekend:"4 weekend days per cycle and 1 full weekend off.",
+    extra:[{id:"four",name:"Always 4 days in a row",test:function(o){var lo=99,hi=0;o.rows.forEach(function(r){runs(r).on.forEach(function(x){lo=Math.min(lo,x);hi=Math.max(hi,x);});});return {ok:lo===4&&hi===4,detail:"Stretches run "+(lo===hi?lo:lo+" to "+hi)+" days."};},
+      why:"With exactly 40 hours (four 10s) in every week, one solid 4-day block per week puts each person's days off on the same weekdays forever. Then one person works every weekend and another never does, and relief doubles up. Solver-tested: no fair 4-in-a-row pattern exists under a 40-hour week. Stretches of 3 or 4 keep weekends equal and let days off rotate."}]},
+  "12":{name:"12-hour",span:20,
+    types:{A:["Days",12,"start","day"],S:["Short day, 8 hr",8,"start","day","","DAY"],P:["Evenings",12,"end","ev"],E:["Short evening, 8 hr",8,"end","ev","","EVE"],Q:["Relief, 8 hr",8,"mid","rel","","R"]},
+    lines:[".QAA..EE..QPP..EEP..AAA..SS.", "AA..SS..QAA..EE..QPP..EEP..A", ".EEP..AAA..SS..QAA..EE..QPP.", "E..QPP..PEE..AAA..SS..QAA..E"],
+    blocks:"Two 12-hour and two 8-hour shifts every week (24 + 16 = 40). Each day pairs one 12 with one 8: a 12-hour Day with an 8-hour Evening, or an 8-hour Day with a 12-hour Evening.",
+    weekend:"4 weekend days per cycle, no full weekend off."}
+};
+var DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+var MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function $(id){return document.getElementById(id);}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function hh(h){return String(h).padStart(2,"0")+"00";}
+var cur=null, view="cycle";
+
+/* Build one option: clock times come from the start time; the day ends at start + span or midnight, whichever is first. */
+function build(key,S){
+  var b=BASE[key],E=Math.min(S+b.span,24),w=E-S,T={};
+  Object.keys(b.types).forEach(function(k){var d=b.types[k],ln=d[1],st=d[2]==="start"?S:(d[2]==="end"?E-ln:S+Math.floor((w-ln)/2));
+    T[k]={n:d[0],s:st,e:st+ln,slot:d[3],rel:d[3]==="rel",covers:d[4]||"",lab:d[5]||k};});
+  var o={key:key,name:b.name,S:S,E:E,win:w,overlap:b.span-w,types:T,rows:b.lines,base:b};
+  o.np=o.rows.length;o.paid=o.np*2080;o.eff=w*365/o.paid;
+  var rel=0;o.rows.forEach(function(row){for(var i=0;i<28;i++){var t=T[row[i]];if(t&&t.rel)rel++;}});
+  o.relYear=rel*13;
+  var per=[];for(var d=0;d<28;d++){var c=0;o.rows.forEach(function(row){var t=T[row[d]];if(t&&t.rel)c++;});per.push(c);}
+  o.relOn=per.filter(function(x){return x>0;}).length;o.relDbl=per.filter(function(x){return x>1;}).length;
+  var wc=o.rows.map(function(r){var c=0;for(var i=0;i<28;i++)if(r[i]!==".")c++;return c;});
+  o.workCycle=wc[0];o.workYear=wc[0]*13;o.offYear=364-o.workYear;o.workEqual=wc.every(function(x){return x===wc[0];});
+  o.rest=minRest(o);o.rot=rotation(o);o.we=weekends(o);
+  return o;
+}
+function minRest(o){var mr=99;o.rows.forEach(function(r){for(var i=0;i<28;i++){var a=o.types[r[i]],b=o.types[r[(i+1)%28]];if(a&&b)mr=Math.min(mr,24-a.e+b.s);}});return mr;}
+/* Days-off rotation: weekly off-day sets per person (Monday-based weeks). */
+function rotation(o){
+  var patterns=0,moved=0,pairs=0,wdays=0;
+  o.rows.forEach(function(r){
+    var sets=[];for(var w=0;w<4;w++){var s=[];for(var d=0;d<7;d++)if(r[w*7+d]===".")s.push(d);sets.push(s.join(","));}
+    var uniq={};sets.forEach(function(s){uniq[s]=1;});patterns+=Object.keys(uniq).length;
+    var seen={};for(var i=0;i<28;i++)if(r[i]===".")seen[i%7]=1;wdays+=Object.keys(seen).length;
+    for(var w2=0;w2<4;w2++){var a=sets[w2].split(",").filter(String),b=sets[(w2+1)%4].split(",").filter(String);
+      var diff=a.filter(function(x){return b.indexOf(x)<0;}).length;moved+=diff;pairs++;}
+  });
+  var np=o.rows.length;
+  return {fixed:patterns===np,patterns:patterns/np,weekdays:wdays/np,moved:moved/pairs};
+}
+function weekends(o){var ds=[],fs=[];o.rows.forEach(function(r){var we=0,fw=0;for(var d=0;d<28;d++)if(d%7>=5&&r[d]!==".")we++;for(var w=0;w<4;w++)if(r[w*7+5]==="."&&r[w*7+6]===".")fw++;ds.push(we);fs.push(fw);});
+  function rng(a){var lo=Math.min.apply(null,a),hi=Math.max.apply(null,a);return lo===hi?String(lo):lo+"-"+hi;}
+  return {days:rng(ds),full:rng(fs),anyFull:Math.max.apply(null,fs)>0};}
+function rotText(o,short){
+  var r=o.rot;
+  if(r.fixed)return short?"No, fixed":"Days off do not rotate. Each person keeps the same days off every week.";
+  var mv=(Math.round(r.moved*10)/10);
+  return short?("Yes, "+mv+"/wk move"):("Days off rotate. Over the 4-week cycle each person's days off land on "+Math.round(r.weekdays*10)/10+" of the 7 weekdays, and about "+mv+" of their days off move to a different weekday from one week to the next.");
+}
+function anchorOff(){return (startDate().getDay()+6)%7;}
+function code(p,t){var i=t+anchorOff();return cur.rows[p][((i%28)+28)%28];}
+function hrsOf(c){var t=cur.types[c];return t.e-t.s;}
+function mondayOnOrBefore(d){var x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x;}
+function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function parse(v){var a=v.split("-").map(Number);return new Date(a[0],a[1]-1,a[2]);}
+function names(){return [0,1,2,3,4].map(function(i){return $("n"+i).value.trim()||("Person "+(i+1));});}
+function startDate(){return parse($("start").value||iso(today));}
+function dayDiff(a,b){return Math.round((b-a)/864e5);}
+function cycleDay(d){return dayDiff(startDate(),d);}
+function isWknd(d){var g=d.getDay();return g===0||g===6;}
+var today=new Date();today.setHours(0,0,0,0);
+var saved={};try{saved=JSON.parse(localStorage.getItem("rot2080l")||"{}");}catch(e){}
+var defStart=new Date(today.getFullYear()+1,0,1);
+$("start").value=saved.start||iso(defStart);
+[0,1,2,3,4].forEach(function(i){if(saved.n&&saved.n[i])$("n"+i).value=saved.n[i];});
+if(saved.st)$("st").value=saved.st;
+if(saved.view==="year")view="year";
+$("day").value=iso(startDate()>today?startDate():today);
+function save(){try{localStorage.setItem("rot2080l",JSON.stringify({start:$("start").value,n:names(),len:$("len").value,st:$("st").value,view:view}));}catch(e){}}
+/* In a mixed option, 8-hour shifts get a dashed frame, stripes and a small "8" so they stand out. */
+function lab(c){var t=cur&&cur.types[c];return t?t.lab:c;}
+function isShort(c){if(c==="."||!cur.types[c])return false;var t=cur.types[c];return (t.e-t.s)===8&&mixInfo(cur).mixedLines>0;}
+function cell(c){var sh=isShort(c);return '<div class="c '+(c==="."?"X":c)+(sh?' short':'')+'"'+(sh?' title="8-hour shift"':'')+'>'+(c==="."?"&middot;":'<span class="lb'+(lab(c).length>1?' long':'')+'">'+lab(c)+'</span>')+(sh?'<sup>8</sup>':'')+'</div>';}
+function pct(x){return (Math.round(x*1000)/10).toFixed(1)+"%";}
+function coverable(p,t){
+  var prev=code(p,t-1),next=code(p,t+1),pe=prev==="."?null:cur.types[prev].e,ns=next==="."?null:cur.types[next].s;
+  return Object.keys(cur.types).filter(function(k){var t2=cur.types[k];if(t2.slot!=="day"&&t2.slot!=="ev")return false;
+    if(pe!==null&&24-pe+t2.s<10)return false;if(ns!==null&&24-t2.e+ns<10)return false;return true;}).map(function(k){return cur.types[k].n;});
+}
+function counts(p){var c={};Object.keys(cur.types).forEach(function(k){c[k]=0;});for(var i=0;i<28;i++){var ch=cur.rows[p][i];if(c[ch]!==undefined)c[ch]++;}return c;}
+
+/* Live rules check: every rule is tested against the actual lines and clock times. */
+function runs(r){var st=0;for(var i=0;i<28;i++){if(r[i]!=="."&&r[(i+27)%28]==="."){st=i;break;}}var x=r.slice(st)+r.slice(0,st),on=[],off=[];(x.match(/[^.]+/g)||[]).forEach(function(m){on.push(m.length);});(x.match(/\.+/g)||[]).forEach(function(m){off.push(m.length);});return {on:on,off:off};}
+function checks(o){
+  var T=o.types,R=o.rows,out=[],b=o.base;
+  function add(id,name,ok,detail,why){out.push({id:id,name:name,ok:ok,detail:detail,why:ok?"":(why||"")});}
+  var wkOk=true,mxD=0,badW="";R.forEach(function(r,pi){for(var w=0;w<4;w++){var h=0,dn=0;for(var d=w*7;d<w*7+7;d++){var t=T[r[d]];if(t){h+=t.e-t.s;dn++;}}mxD=Math.max(mxD,dn);if(h!==40||dn>5){wkOk=false;badW="Line "+(pi+1)+", week "+(w+1)+": "+dn+" days, "+h+" hours.";}}});
+  add("week","40 hours and no more than 5 days in every week",wkOk,wkOk?"Every line, every Monday-to-Sunday week. Most days in a week: "+mxD+".":badW,"This is a hard rule.");
+  add("year","2,080 hours a year",wkOk,"52 weeks x 40 hours.");
+  var covOk=true,gap="";for(var d=0;d<28&&covOk;d++){var a=0,p=0;R.forEach(function(r){var t=T[r[d]];if(t&&t.slot==="day")a++;if(t&&t.slot==="ev")p++;});
+    if(a!==1||p!==1){covOk=false;gap="Day "+(d+1)+" has "+a+" Days and "+p+" Evenings shifts.";break;}
+    for(var h=o.S;h<o.E;h++){var hit=R.some(function(r){var t=T[r[d]];return t&&(t.slot==="day"||t.slot==="ev")&&t.s<=h&&h<t.e;});if(!hit){covOk=false;gap="Uncovered at "+hh(h)+" on day "+(d+1)+".";break;}}}
+  add("coverage","Every hour "+hh(o.S)+"&ndash;"+hh(o.E)+" covered, one Days and one Evenings shift a day",covOk,covOk?"All 28 days of the cycle.":gap);
+  add("midnight","Day ends by midnight",o.E<=24,"Ends at "+hh(o.E)+".");
+  var worst=99;R.forEach(function(r){for(var i=0;i<28;i++){var a=T[r[i]],bb=T[r[(i+1)%28]];if(!a||!bb)continue;
+    var ea=a.covers?a.covers.split("").map(function(k){return T[k].e;}):[a.e],sb=bb.covers?bb.covers.split("").map(function(k){return T[k].s;}):[bb.s];
+    ea.forEach(function(x){sb.forEach(function(y){worst=Math.min(worst,24-x+y);});});}});
+  add("rest","At least 10 hours between shifts",worst>=10,"Shortest gap "+worst+" h, including relief swaps where a relief shift can take either core shift.","Shortest gap is "+worst+" h.");
+  var minOff=99;R.forEach(function(r){runs(r).off.forEach(function(x){minOff=Math.min(minOff,x);});});
+  add("off2","At least 2 days off in a row",minOff>=2,"Shortest break "+minOff+" days.","Shortest break is "+minOff+" day.");
+  add("relief","Relief days available for leave",o.relYear>0,o.relYear+" a year across the team.");
+  add("double","Never 2 relief people on the same day",o.relDbl===0,o.relDbl?"Doubled on "+o.relDbl+" of 28 days.":"Relief on "+o.relOn+" of 28 days, never doubled.");
+  var weq=String(o.we.days).indexOf("-")<0;
+  add("weekends","Equal weekend days for everyone",weq,o.we.days+" weekend days per person per cycle.","Weekend days range "+o.we.days+".");
+  add("rotate","Days off rotate",!o.rot.fixed,o.rot.fixed?"Same days off every week.":"About "+(Math.round(o.rot.moved*10)/10)+" days off move each week.");
+  add("people","Staffed by 4 people",o.np===4,o.np+" people.");
+  var lens={};R.forEach(function(r){for(var i=0;i<28;i++){var t=T[r[i]];if(t)lens[t.e-t.s]=1;}});
+  var ls=Object.keys(lens).map(Number).sort(function(a,b){return a-b;}),lok=ls.every(function(x){return x===8||x===10||x===12;});
+  add("lengths","Every shift is 8, 10 or 12 hours",lok,"Shift lengths used: "+ls.join(", ")+" hours.","Shifts of "+ls.filter(function(x){return x!==8&&x!==10&&x!==12;}).join(", ")+" hours are not allowed.");
+  (b.extra||[]).forEach(function(x){var t=x.test(o);add(x.id,x.name,t.ok,t.detail,x.why);});
+  return out;
+}
+function renderChecks(){
+  var cs=checks(cur),fails=cs.filter(function(c){return !c.ok;});
+  $("checkhead").innerHTML=fails.length?'<span class="notok">'+fails.length+' of '+cs.length+' rules not met for '+cur.name+' shifts.</span> Failures are listed first with the reason.':'<span class="allok">All '+cs.length+' rules met for '+cur.name+' shifts.</span>';
+  cs.sort(function(a,b){return (a.ok?1:0)-(b.ok?1:0);});
+  $("checks").innerHTML=cs.map(function(c){return '<div class="chk'+(c.ok?'':' fail')+'"><span class="ic" aria-hidden="true">'+(c.ok?'&#10003;':'&#10007;')+'</span><div><b>'+c.name+'</b><span>'+(c.ok?'':'<span class="sr-only">Not met. </span>')+c.detail+(c.why?'<span class="why">Why: '+c.why+'</span>':'')+'</span></div></div>';}).join("");
+}
+/* Which shift lengths each line uses; a line is mixed when it has more than one length. */
+function mixInfo(o){var per=o.rows.map(function(r){var l={};for(var i=0;i<28;i++){var t=o.types[r[i]];if(t)l[t.e-t.s]=1;}return Object.keys(l).map(Number).sort(function(a,b){return b-a;});});
+  var all={};per.forEach(function(x){x.forEach(function(v){all[v]=1;});});var lens=Object.keys(all).map(Number).sort(function(a,b){return b-a;});
+  var mixedLines=per.filter(function(x){return x.length>1;}).length;return {lens:lens,mixedLines:mixedLines,np:per.length};}
+function mixText(o){var m=mixInfo(o);
+  if(!m.mixedLines)return '<span class="pill">'+m.lens[0]+' hr only</span>';
+  return '<span class="pill mix">Mixed '+m.lens.join(' + ')+' hr</span> <span class="note">'+(m.mixedLines===m.np?'every line':m.mixedLines+' of '+m.np+' lines')+'</span>';}
+/* Rank options: efficiency, then less overlap, then fewer rule failures, then more relief. */
+function rankAll(all){all.forEach(function(o){o.fails=checks(o).filter(function(x){return !x.ok;}).length;});
+  all.sort(function(a,b){return (Math.abs(b.eff-a.eff)>1e-9?b.eff-a.eff:0)||(a.overlap-b.overlap)||(a.fails-b.fails)||(b.relYear-a.relYear);});return all;}
+function renderSummary(){
+  var S=+$("st").value;
+  var all=Object.keys(BASE).map(function(k){return build(k,S);});
+  rankAll(all);
+  var best=all[0];
+  var bestStart={};Object.keys(BASE).forEach(function(k){var top=null,ties=[];[5,6,7,8].forEach(function(s){var o=build(k,s);
+      if(!top||o.eff>top.eff+1e-9||(Math.abs(o.eff-top.eff)<1e-9&&o.overlap<top.overlap)){top=o;ties=[s];}
+      else if(Math.abs(o.eff-top.eff)<1e-9&&o.overlap===top.overlap)ties.push(s);});
+    top.ties=ties;top.tieText=ties.length===4?"any":ties.map(hh).join(" or ");bestStart[k]=top;});
+  var gap=best.eff-all[1].eff;
+  $("verdict").innerHTML="With the day starting at <b>"+hh(S)+"</b>, <b>"+best.name+" shifts</b> are the most efficient: "+pct(best.eff)+" of paid hours land on the clock, covering "+hh(best.S)+"&ndash;"+hh(best.E)+" with "+best.np+" people"+(best.overlap?" and a "+best.overlap+"-hour turnover overlap":" and no overlap")+"."+
+    (gap<0.0005?(all[1].overlap===best.overlap?" It ties with "+all[1].name+" shifts on coverage and overlap"+(all[1].fails>best.fails?" and ranks first because it meets every rule.":"."):" It ties with "+all[1].name+" on coverage and wins on less overlap."):"")+
+    " You are viewing <b>"+cur.name+"</b> ("+(all.findIndex(function(o){return o.key===cur.key;})+1)+" of "+all.length+"). "+rotText(cur,false);
+  var bs=bestStart[cur.key];
+  $("facts").innerHTML=[
+    ["Best start for "+cur.name,(bs.ties.length===4?"Any start works equally: always "+bs.win+" hours a day at "+pct(bs.eff)+", with no overlap. Pick the window that fits your traffic.":bs.tieText+", covering "+bs.win+" hours a day at "+pct(bs.eff)+(bs.overlap?" with "+bs.overlap+" h overlap.":" with no overlap."))],
+    ["Days off",rotText(cur,false)],
+    ["Days worked and off","Each person works "+cur.workYear+" days and has "+cur.offYear+" days off a year ("+cur.workCycle+" of every 28 days, "+(cur.workYear/52)+" a week on average)."],
+    ["Relief",cur.relYear+" relief days a year across the team, on "+cur.relOn+" of 28 days per cycle"+(cur.relDbl?", doubled on "+cur.relDbl:", never doubled")+"."],
+    ["Weekends",cur.base.weekend]
+  ].map(function(f){return '<div class="fact"><b>'+f[0]+'</b><span>'+f[1]+'</span></div>';}).join("");
+  var max=all[0].eff;
+  var h='<thead><tr><th>Rank</th><th>Shift</th><th>Shift hours</th><th>Days worked/yr</th><th>Days off/yr</th><th>People</th><th>Coverage</th><th>Efficiency</th><th>Overlap</th><th>Relief days/yr</th><th>Days off rotate</th><th>Weekend days</th><th>Best start</th><th>Rules met</th></tr></thead><tbody>';
+  all.forEach(function(o,i){
+    h+='<tr tabindex="0" data-k="'+o.key+'" class="'+(o.key===cur.key?"on":"")+'"><td><span class="pos'+(i===0?" first":"")+'">'+(i+1)+'</span></td><td><b>'+o.name+'</b></td><td>'+mixText(o)+'</td><td class="m"><b>'+o.workYear+'</b></td><td class="m"><b>'+o.offYear+'</b></td><td class="m">'+o.np+'</td><td class="m">'+hh(o.S)+'&ndash;'+hh(o.E)+' ('+o.win+'h)</td><td class="m">'+pct(o.eff)+'<span class="meter"><i style="width:'+(o.eff/max*100)+'%"></i></span></td><td class="m">'+(o.overlap?o.overlap+' h/day':'none')+'</td><td class="m">'+o.relYear+'</td><td><span class="pill'+(o.rot.fixed?'':' yes')+'">'+rotText(o,true)+'</span></td><td class="m">'+o.we.days+'/cycle'+(o.we.anyFull?', '+o.we.full+' full off':', no full off')+'</td><td class="m">'+bestStart[o.key].tieText+'</td><td>'+(function(){var c=checks(o),n=c.filter(function(x){return x.ok;}).length;return '<span class="rulecount'+(n<c.length?' bad':'')+'">'+n+'/'+c.length+'</span>'+(n<c.length?' <span class="note" style="color:var(--bad)">'+c.filter(function(x){return !x.ok;}).map(function(x){return x.name;}).join("; ")+'</span>':'');})()+'</td></tr>';
+  });
+  $("rank").innerHTML=h+'</tbody>';
+  Array.prototype.forEach.call($("rank").querySelectorAll("tbody tr"),function(tr){
+    function go(){$("len").value=tr.getAttribute("data-k");update();}
+    tr.addEventListener("click",go);tr.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});
+  });
+}
+function renderHead(){
+  $("eyebrow").innerHTML="28-day cycle &middot; "+cur.np+" people &middot; 2,080 hours each";
+  $("win").innerHTML=hh(cur.S)+"&ndash;"+hh(cur.E);
+  $("winnote").innerHTML=cur.win+" hours a day. "+(cur.overlap?"Days and Evenings overlap "+cur.overlap+" h a day at turnover.":"Back to back, no overlap.")+(cur.E===24&&cur.S+cur.base.span>24?" Capped at midnight.":"");
+  $("lede").innerHTML="Covers "+hh(cur.S)+"&ndash;"+hh(cur.E)+" every day with "+cur.name+" shifts and "+cur.np+" people. One Days and one Evenings shift every day, with the spare hours set aside as relief days for vacation and sick coverage.";
+  $("n4lbl").hidden=cur.np<5;
+  $("stats").innerHTML=[
+    [pct(cur.eff),"efficiency"],
+    ["40","hours every week, never more"],
+    [String(cur.np),"people at 2,080 hours"],
+    [cur.win+" h","covered every day"],
+    [String(cur.relYear),"relief days per year, team total"],
+    [cur.rest+" h","minimum rest between shifts"]
+  ].map(function(s){return '<div class="stat"><b>'+s[0]+'</b><span>'+s[1]+'</span></div>';}).join("");
+  $("legend").innerHTML=Object.keys(cur.types).map(function(k){var t=cur.types[k],sh=isShort(k);return '<span class="chip'+(sh?' shortchip':'')+'"><span class="sw '+k+(sh?' short':'')+(t.lab.length>1?' wide':'')+'">'+t.lab+'</span>'+t.n+' '+hh(t.s)+'&ndash;'+hh(t.e)+'</span>';}).join("")+
+    (mixInfo(cur).mixedLines?'<span class="chip shortchip">Dashed and striped = 8-hour shift in a mixed line</span>':'')+'<span class="chip"><span class="sw X">&middot;</span>Off</span><span class="chip"><span class="sw" style="background:var(--wknd);color:var(--wknd-ink);box-shadow:inset 0 3px 0 var(--wknd-ink)"></span>Weekend</span>';
+  var keys=Object.keys(cur.types),nm=names();
+  var tb='<thead><tr><th>Line</th>'+keys.map(function(k){return '<th>'+cur.types[k].lab+'</th>';}).join("")+'<th>Hours</th></tr></thead><tbody>';
+  for(var p=0;p<cur.np;p++){var c=counts(p),h=0;keys.forEach(function(k){h+=c[k]*hrsOf(k);});tb+='<tr><td>'+esc(nm[p])+'</td>'+keys.map(function(k){return '<td>'+c[k]+'</td>';}).join("")+'<td>'+h+'</td></tr>';}
+  $("totals").innerHTML=tb+'</tbody>';
+  $("rules").innerHTML=[
+    ["Hard rule","Never more than 40 hours or 5 days in any Monday-to-Sunday week, for every shift length."],
+    ["Pattern",cur.base.blocks],
+    ["Coverage","Exactly one Days and one Evenings shift every day. Extra bodies only appear as relief days."],
+    ["Relief","Relief days default to "+(function(){var k=Object.keys(cur.types).filter(function(x){return cur.types[x].rel;})[0];return hh(cur.types[k].s)+"&ndash;"+hh(cur.types[k].e);})()+". When someone is on leave the relief person takes their shift instead; the On duty panel shows which shifts each relief day can take without breaking 10 hours of rest."],
+    ["Rest","At least "+cur.rest+" hours between scheduled shifts."],
+    ["Days off","Always at least 2 days off in a row, in every option. "+rotText(cur,false)],
+    ["Weekends",cur.base.weekend+" Same for every person."],
+    ["2080","13 cycles = 364 days = 2,080 hours. The 365th day (366th in a leap year) is the next day of the cycle."]
+  ].map(function(r){return '<li><b>'+r[0]+'</b><span>'+r[1]+'</span></li>';}).join("");
+  var need=cur.win*365,core=cur.base.span*365;
+  $("math").innerHTML="Covering "+cur.win+" hours a day needs "+need.toLocaleString()+" hours a year. "+cur.np+" people at 2,080 provide "+cur.paid.toLocaleString()+": "+(core-need).toLocaleString()+" go to turnover overlap and "+(cur.paid-core).toLocaleString()+" to relief.";
+}
+function renderGrid(){
+  var start=startDate(),nm=names(),we=[];
+  var pa=mondayOnOrBefore(start);$("payline").innerHTML="Weeks for the 40-hour rule run Monday to Sunday; the first full week starts Monday "+(pa.getMonth()+1)+"/"+pa.getDate()+"/"+pa.getFullYear()+".";
+  var h='<thead><tr class="wk"><th class="name"></th>';
+  for(var w=0;w<4;w++)h+='<th colspan="7">Week '+(w+1)+'</th>';
+  h+='<th></th></tr><tr><th class="name"></th>';
+  for(var t=0;t<28;t++){var d=new Date(start);d.setDate(d.getDate()+t);we.push(isWknd(d));h+='<th'+(we[t]?' class="we"':'')+'>'+DOW[(d.getDay()+6)%7]+'<span class="dt">'+(d.getMonth()+1)+'/'+d.getDate()+'</span></th>';}
+  h+='<th style="padding:0 12px;text-align:left">Days per 7</th></tr></thead><tbody>';
+  var td=dayDiff(start,today);
+  for(var p=0;p<cur.np;p++){
+    h+='<tr><th class="name">'+esc(nm[p])+'</th>';var wk=[0,0,0,0];
+    for(var t2=0;t2<28;t2++){var c=code(p,t2);if(c!==".")wk[Math.floor(t2/7)]++;
+      h+='<td class="'+[t2%7===0&&t2?"wkstart":"",we[t2]?"we":"",t2===td?"today":""].join(" ")+'">'+cell(c)+'</td>';}
+    h+='<td class="hrs">'+wk.join(" &middot; ")+'</td></tr>';
+  }
+  h+='<tr class="cov"><th class="name" style="font-weight:400;color:var(--muted);font-size:12px">Staffed</th>';
+  for(var t3=0;t3<28;t3++){var cs=[];for(var q=0;q<cur.np;q++){var cc=code(q,t3);if(cc!==".")cs.push(cc);}h+='<td class="'+(t3%7===0&&t3?"wkstart ":"")+(we[t3]?"we":"")+'">'+cs.sort().map(lab).join("<br>")+'</td>';}
+  $("grid").innerHTML=h+'<td></td></tr></tbody>';
+}
+function offCount(p,total){var n=0;for(var t=0;t<total;t++)if(code(p,t)===".")n++;return n;}
+function renderYear(){
+  var start=startDate(),end=new Date(start);end.setFullYear(end.getFullYear()+1);end.setDate(end.getDate()-1);
+  var total=dayDiff(start,end)+1,nm=names(),tdy=dayDiff(start,today);
+  $("yearlbl").innerHTML="One year from "+(start.getMonth()+1)+"/"+start.getDate()+"/"+start.getFullYear()+" through "+(end.getMonth()+1)+"/"+end.getDate()+"/"+end.getFullYear()+" ("+total+" days). Each month scrolls sideways on a phone.";
+  var out="",y=start.getFullYear(),m=start.getMonth();
+  while(new Date(y,m,1)<=end){
+    var dim=new Date(y,m+1,0).getDate();
+    var h='<div class="month"><h3>'+MON[m]+' '+y+'</h3><div class="scroll"><table class="ygrid"><thead><tr><th class="name"></th>';
+    for(var d=1;d<=dim;d++){var dt=new Date(y,m,d);h+='<th'+(isWknd(dt)?' class="we"':'')+'>'+DOW[(dt.getDay()+6)%7].slice(0,2)+'<br>'+d+'</th>';}
+    h+='</tr></thead><tbody>';
+    for(var p=0;p<cur.np;p++){h+='<tr><th class="name">'+esc(nm[p])+'</th>';
+      for(var d2=1;d2<=dim;d2++){var dt2=new Date(y,m,d2),t=dayDiff(start,dt2),inR=t>=0&&t<total,c=inR?code(p,t):".";
+        h+='<td class="'+[isWknd(dt2)?"we":"",inR?"":"out",t===tdy?"today":""].join(" ")+'">'+cell(c)+'</td>';}
+      h+='</tr>';}
+    out+=h+'</tbody></table></div></div>';
+    m++;if(m>11){m=0;y++;}
+  }
+  $("year").innerHTML=out;
+  var keys=Object.keys(cur.types);
+  var tb='<thead><tr><th>Person</th>'+keys.map(function(k){return '<th>'+cur.types[k].n+'</th>';}).join("")+'<th>Days worked</th><th>Days off</th><th>Weekend days</th><th>Hours</th></tr></thead><tbody>';
+  for(var p2=0;p2<cur.np;p2++){var cn={};keys.forEach(function(k){cn[k]=0;});var wd=0,hr=0;
+    for(var t4=0;t4<total;t4++){var ch=code(p2,t4);if(ch===".")continue;cn[ch]++;hr+=hrsOf(ch);var dd=new Date(start);dd.setDate(dd.getDate()+t4);if(isWknd(dd))wd++;}
+    tb+='<tr><td>'+esc(nm[p2])+'</td>'+keys.map(function(k){return '<td>'+cn[k]+'</td>';}).join("")+'<td>'+(total-Object.keys(cn).reduce(function(a,k){return a;},0)-offCount(p2,total))+'</td><td>'+offCount(p2,total)+'</td><td>'+wd+'</td><td>'+hr.toLocaleString()+'</td></tr>';}
+  $("ytotals").innerHTML=tb+'</tbody>';
+}
+function renderCov(){
+  var v=$("day").value,base=v?parse(v):today,mon=mondayOnOrBefore(base),h="";
+  $("covlbl").innerHTML="Week of "+(mon.getMonth()+1)+"/"+mon.getDate()+". Tinted band is the "+hh(cur.S)+"&ndash;"+hh(cur.E)+" window; striped bars are relief days at their default hours.";
+  var col={A:"var(--am)",P:"var(--pm)",S:"var(--sd)",E:"var(--pe)",F:"var(--muted)"},wl=cur.S/24*100,ww=cur.win/24*100;
+  for(var d=0;d<7;d++){
+    var day=new Date(mon);day.setDate(day.getDate()+d);var t=cycleDay(day),cs=[];
+    for(var p=0;p<cur.np;p++){var c=code(p,t);if(c!==".")cs.push(c);}
+    cs.sort(function(a,b){return ((cur.types[a].rel?1:0)-(cur.types[b].rel?1:0))||(cur.types[a].s-cur.types[b].s);});
+    h+='<div class="covrow"><span>'+DOW[d]+' '+(day.getMonth()+1)+'/'+day.getDate()+'</span><div class="bar" role="img" aria-label="'+DOW[d]+': '+cs.map(function(c){return cur.types[c].n;}).join(", ")+'"><div class="win" style="left:'+wl+'%;width:'+ww+'%"></div>';
+    cs.slice(0,3).forEach(function(c,i){var T=cur.types[c];h+='<div class="seg'+(T.rel?' rel':'')+'" style="left:'+(T.s/24*100)+'%;width:'+((T.e-T.s)/24*100)+'%;top:'+(3+i*11)+'px;'+(T.rel?'':'background:'+col[c])+'"></div>';});
+    h+='</div></div>';
+  }
+  $("cov").innerHTML=h;
+  $("ticks").innerHTML=[0,6,12,18,24].map(function(x){return '<i style="left:'+(x/24*100)+'%">'+hh(x)+'</i>';}).join("");
+}
+function renderDuty(){
+  var v=$("day").value;if(!v){$("duty").innerHTML="";return;}
+  var t=cycleDay(parse(v)),nm=names(),rows=[],off=[];
+  for(var p=0;p<cur.np;p++){var c=code(p,t);if(c===".")off.push(esc(nm[p]));else rows.push({p:p,c:c});}
+  rows.sort(function(a,b){return ((cur.types[a.c].rel?1:0)-(cur.types[b.c].rel?1:0))||(cur.types[a.c].s-cur.types[b.c].s);});
+  $("duty").innerHTML=rows.map(function(r){var T=cur.types[r.c],sub="";
+    if(T.rel){var cv=coverable(r.p,t);sub='<span class="sub">'+(cv.length?"Can cover "+cv.join(" or ")+" for someone on leave.":"Cannot swap into a core shift today without breaking 10-hour rest.")+'</span>';}
+    return '<div class="row"><span class="sw '+r.c+(T.lab.length>1?' wide':'')+'">'+T.lab+'</span>'+esc(nm[r.p])+' &middot; '+T.n+'<span class="time">'+hh(T.s)+'&ndash;'+hh(T.e)+'</span>'+sub+'</div>';}).join("")+
+    '<div class="row" style="color:var(--muted);font-size:13px">Off: '+(off.join(", ")||"nobody")+'</div>';
+}
+function setView(v){view=v;$("vCycle").setAttribute("aria-pressed",String(v==="cycle"));$("vYear").setAttribute("aria-pressed",String(v==="year"));
+  $("cycleView").hidden=v!=="cycle";$("yearView").hidden=v!=="year";$("yearTotalsPanel").hidden=v!=="year";save();if(v==="year")renderYear();}
+function update(){cur=build($("len").value,+$("st").value);save();renderSummary();renderChecks();renderHead();renderGrid();if(view==="year")renderYear();renderDuty();renderCov();}
+["start","n0","n1","n2","n3","n4"].forEach(function(id){$(id).addEventListener("input",update);});
+["len","st"].forEach(function(id){$(id).addEventListener("change",update);});
+$("vCycle").addEventListener("click",function(){setView("cycle");});
+$("vYear").addEventListener("click",function(){setView("year");});
+$("day").addEventListener("input",function(){renderDuty();renderCov();});
+/* On load, open the number 1 option for the chosen start time. */
+$("len").value=rankAll(Object.keys(BASE).map(function(k){return build(k,+$("st").value);}))[0].key;
+update();setView(view);
+</script>
+</body>
+</html>
