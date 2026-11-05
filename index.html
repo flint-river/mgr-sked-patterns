@@ -71,7 +71,7 @@ select:disabled{opacity:.5}
 .rank td,.rank th{padding:9px 10px;text-align:left;font-size:14px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
 .rank thead th{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400;text-transform:uppercase;letter-spacing:.6px}
 .rank td.m{font-family:var(--mono);font-size:13px}
-.rank tbody tr{cursor:pointer}
+.rank tbody tr{cursor:default}
 .rank tbody tr:hover td{background:var(--off)}
 .rank tbody tr.on td{background:var(--win)}
 .rank tbody tr:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
@@ -186,28 +186,15 @@ table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-num
   </header>
 
   <div class="picker">
-    <label class="lbl" for="len">Shift length
-      <select id="len">
-        <option value="8">8-hour</option>
-        <option value="10" selected>10-hour</option>
-        <option value="12">12-hour</option>
-      </select>
-    </label>
-    <label class="lbl" for="st">Day starts
-      <select id="st">
-        <option value="5" selected>0500</option>
-        <option value="6">0600</option>
-        <option value="7">0700</option>
-        <option value="8">0800</option>
-      </select>
-    </label>
-    <div class="window"><span>Daily coverage window</span><b id="win"></b><span id="winnote"></span></div>
+    <select id="len" hidden aria-hidden="true"><option value="10" selected>10</option></select>
+    <select id="st" hidden aria-hidden="true"><option value="5" selected>5</option></select>
+    <div class="window" style="margin-left:0"><span>Daily coverage window</span><b id="win"></b><span id="winnote"></span></div>
   </div>
 
   <section class="summary" aria-labelledby="rankh">
-    <h2 id="rankh">Shifts ranked by efficiency</h2>
+    <h2 id="rankh">10-hour plan at a glance</h2>
     <div style="overflow-x:auto"><table class="rank" style="width:100%" id="rank"></table></div>
-    <p class="note">Efficiency is the share of paid hours that land on a covered hour of the clock. Turnover overlap counts against it. Relief days count against it too, but they are what covers vacation and sick leave, so more relief is not waste. Days worked and days off are per person over a 52-week year (364 days); the year view shows the exact count for your 365 days. Ties go to the option that meets more rules. "Mixed" means a line works more than one shift length, for example 12-hour and 8-hour shifts in the same week. Every option uses only 8-, 10- and 12-hour shifts, keeps exactly one Days and one Evenings shift per day, at least 2 days off in a row, never more than 40 hours or 5 days in a week, and ends the day by midnight. Click a row to switch to that option.</p>
+    <p class="note">Efficiency is the share of paid hours that land on a covered hour of the clock. With two 10-hour shifts back to back there is no turnover overlap; the rest of the paid hours go to relief days, which cover vacation and sick leave. Days worked and days off are per person over a 52-week year (364 days); the year view shows the exact count for your 365 days.</p>
   </section>
 
   <section class="summary" aria-labelledby="sumh">
@@ -283,34 +270,24 @@ table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-num
    80 hours per pay period, equal weekend days, and at least 11 hours of rest (including relief swaps).
    Shift clock times are derived from the start time and shift length, so the lines hold for any start. */
 var BASE={
-  "8":{name:"8-hour",span:16,
-    types:{A:["Days",8,"start","day"],P:["Evenings",8,"end","ev"],R:["Relief",8,"mid","rel"]},
-    lines:["..AAAAAAA..PPPPPPP..RRRRRR..", "RRRRR....AAAAAAA..PPPPPPP..R", "PPPP..RRRRRR....AAAAAAA..PPP", "AA..PPPPPPP..RRRRRR....AAAAA"],
-    blocks:"Exactly five 8-hour shifts in every Monday-to-Sunday week. A stretch can run 6 or 7 days when it crosses from one week into the next; that is what lets the days off rotate and keeps relief to one person per day.",
-    weekend:"5 weekend days per cycle and 1 full weekend off."},
   "10":{name:"10-hour",span:20,
     types:{A:["Days",10,"start","day"],P:["Evenings",10,"end","ev"],R:["Relief",10,"mid","rel","AP"]},
     lines:[".RPP..PPP...AAA..RPP..AAAA..", ".AAAA...RPP..PPP...AAA..RPP.", "PP...AAA..RPP..AAAA...RPP..P", "A..RPP..AAAA...RPP..PPP...AA"],
-    blocks:"Exactly four 10-hour shifts every week, in stretches of 3 or 4 days.",
+    blocks:"Exactly four 10-hour shifts every week, in stretches of 3 or 4 days. Evenings end at 0100, so nobody ever works Days the morning after an Evenings shift; switches between Evenings and Days always come after days off.",
     weekend:"4 weekend days per cycle and 1 full weekend off.",
     extra:[{id:"four",name:"Always 4 days in a row",test:function(o){var lo=99,hi=0;o.rows.forEach(function(r){runs(r).on.forEach(function(x){lo=Math.min(lo,x);hi=Math.max(hi,x);});});return {ok:lo===4&&hi===4,detail:"Stretches run "+(lo===hi?lo:lo+" to "+hi)+" days."};},
-      why:"With exactly 40 hours (four 10s) in every week, one solid 4-day block per week puts each person's days off on the same weekdays forever. Then one person works every weekend and another never does, and relief doubles up. Solver-tested: no fair 4-in-a-row pattern exists under a 40-hour week. Stretches of 3 or 4 keep weekends equal and let days off rotate."}]},
-  "12":{name:"12-hour",span:20,
-    types:{A:["Days",12,"start","day"],S:["Short day, 8 hr",8,"start","day","","DAY"],P:["Evenings",12,"end","ev"],E:["Short evening, 8 hr",8,"end","ev","","EVE"],Q:["Relief, 8 hr",8,"mid","rel","","R"]},
-    lines:[".QAA..EE..QPP..EEP..AAA..SS.", "AA..SS..QAA..EE..QPP..EEP..A", ".EEP..AAA..SS..QAA..EE..QPP.", "E..QPP..PEE..AAA..SS..QAA..E"],
-    blocks:"Two 12-hour and two 8-hour shifts every week (24 + 16 = 40). Each day pairs one 12 with one 8: a 12-hour Day with an 8-hour Evening, or an 8-hour Day with a 12-hour Evening.",
-    weekend:"4 weekend days per cycle, no full weekend off."}
+      why:"With exactly 40 hours (four 10s) in every week, one solid 4-day block per week puts each person's days off on the same weekdays forever. Then one person works every weekend and another never does, and relief doubles up. Solver-tested: no fair 4-in-a-row pattern exists under a 40-hour week. Stretches of 3 or 4 keep weekends equal and let days off rotate."}]}
 };
 var DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 var MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function $(id){return document.getElementById(id);}
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
-function hh(h){return String(h).padStart(2,"0")+"00";}
+function hh(h){return String(((h%24)+24)%24).padStart(2,"0")+"00";}
 var cur=null, view="cycle";
 
-/* Build one option: clock times come from the start time; the day ends at start + span or midnight, whichever is first. */
+/* Build the plan: clock times come from the start time; the day ends at start + span, which can run past midnight (25 = 0100). */
 function build(key,S){
-  var b=BASE[key],E=Math.min(S+b.span,24),w=E-S,T={};
+  var b=BASE[key],E=S+b.span,w=E-S,T={};
   Object.keys(b.types).forEach(function(k){var d=b.types[k],ln=d[1],st=d[2]==="start"?S:(d[2]==="end"?E-ln:S+Math.floor((w-ln)/2));
     T[k]={n:d[0],s:st,e:st+ln,slot:d[3],rel:d[3]==="rel",covers:d[4]||"",lab:d[5]||k};});
   var o={key:key,name:b.name,S:S,E:E,win:w,overlap:b.span-w,types:T,rows:b.lines,base:b};
@@ -391,7 +368,7 @@ function checks(o){
     if(a!==1||p!==1){covOk=false;gap="Day "+(d+1)+" has "+a+" Days and "+p+" Evenings shifts.";break;}
     for(var h=o.S;h<o.E;h++){var hit=R.some(function(r){var t=T[r[d]];return t&&(t.slot==="day"||t.slot==="ev")&&t.s<=h&&h<t.e;});if(!hit){covOk=false;gap="Uncovered at "+hh(h)+" on day "+(d+1)+".";break;}}}
   add("coverage","Every hour "+hh(o.S)+"&ndash;"+hh(o.E)+" covered, one Days and one Evenings shift a day",covOk,covOk?"All 28 days of the cycle.":gap);
-  add("midnight","Day ends by midnight",o.E<=24,"Ends at "+hh(o.E)+".");
+  add("midnight","Day ends by 0100",o.E<=25,"Ends at "+hh(o.E)+(o.E>24?" the next morning.":"."));
   var worst=99;R.forEach(function(r){for(var i=0;i<28;i++){var a=T[r[i]],bb=T[r[(i+1)%28]];if(!a||!bb)continue;
     var ea=a.covers?a.covers.split("").map(function(k){return T[k].e;}):[a.e],sb=bb.covers?bb.covers.split("").map(function(k){return T[k].s;}):[bb.s];
     ea.forEach(function(x){sb.forEach(function(y){worst=Math.min(worst,24-x+y);});});}});
@@ -427,41 +404,22 @@ function mixText(o){var m=mixInfo(o);
 function rankAll(all){all.forEach(function(o){o.fails=checks(o).filter(function(x){return !x.ok;}).length;});
   all.sort(function(a,b){return (Math.abs(b.eff-a.eff)>1e-9?b.eff-a.eff:0)||(a.overlap-b.overlap)||(a.fails-b.fails)||(b.relYear-a.relYear);});return all;}
 function renderSummary(){
-  var S=+$("st").value;
-  var all=Object.keys(BASE).map(function(k){return build(k,S);});
-  rankAll(all);
-  var best=all[0];
-  var bestStart={};Object.keys(BASE).forEach(function(k){var top=null,ties=[];[5,6,7,8].forEach(function(s){var o=build(k,s);
-      if(!top||o.eff>top.eff+1e-9||(Math.abs(o.eff-top.eff)<1e-9&&o.overlap<top.overlap)){top=o;ties=[s];}
-      else if(Math.abs(o.eff-top.eff)<1e-9&&o.overlap===top.overlap)ties.push(s);});
-    top.ties=ties;top.tieText=ties.length===4?"any":ties.map(hh).join(" or ");bestStart[k]=top;});
-  var gap=best.eff-all[1].eff;
-  $("verdict").innerHTML="With the day starting at <b>"+hh(S)+"</b>, <b>"+best.name+" shifts</b> are the most efficient: "+pct(best.eff)+" of paid hours land on the clock, covering "+hh(best.S)+"&ndash;"+hh(best.E)+" with "+best.np+" people"+(best.overlap?" and a "+best.overlap+"-hour turnover overlap":" and no overlap")+"."+
-    (gap<0.0005?(all[1].overlap===best.overlap?" It ties with "+all[1].name+" shifts on coverage and overlap"+(all[1].fails>best.fails?" and ranks first because it meets every rule.":"."):" It ties with "+all[1].name+" on coverage and wins on less overlap."):"")+
-    " You are viewing <b>"+cur.name+"</b> ("+(all.findIndex(function(o){return o.key===cur.key;})+1)+" of "+all.length+"). "+rotText(cur,false);
-  var bs=bestStart[cur.key];
+  var o=cur,cs=checks(o),n=cs.filter(function(x){return x.ok;}).length;
+  $("verdict").innerHTML="<b>10-hour shifts, "+hh(o.S)+"&ndash;"+hh(o.E)+".</b> Days "+hh(o.types.A.s)+"&ndash;"+hh(o.types.A.e)+" and Evenings "+hh(o.types.P.s)+"&ndash;"+hh(o.types.P.e)+" cover all "+o.win+" hours back to back, so "+pct(o.eff)+" of paid hours land on the clock with no overlap. "+o.np+" people, 40 hours a week each, 2,080 a year. "+rotText(o,false);
   $("facts").innerHTML=[
-    ["Best start for "+cur.name,(bs.ties.length===4?"Any start works equally: always "+bs.win+" hours a day at "+pct(bs.eff)+", with no overlap. Pick the window that fits your traffic.":bs.tieText+", covering "+bs.win+" hours a day at "+pct(bs.eff)+(bs.overlap?" with "+bs.overlap+" h overlap.":" with no overlap."))],
-    ["Days off",rotText(cur,false)],
-    ["Days worked and off","Each person works "+cur.workYear+" days and has "+cur.offYear+" days off a year ("+cur.workCycle+" of every 28 days, "+(cur.workYear/52)+" a week on average)."],
-    ["Relief",cur.relYear+" relief days a year across the team, on "+cur.relOn+" of 28 days per cycle"+(cur.relDbl?", doubled on "+cur.relDbl:", never doubled")+"."],
-    ["Weekends",cur.base.weekend]
+    ["Days worked and off","Each person works "+o.workYear+" days and has "+o.offYear+" days off a year ("+o.workCycle+" of every 28 days, "+(o.workYear/52)+" a week)."],
+    ["Overnight finish","Evenings end at "+hh(o.types.P.e)+". Nobody works Days the next morning; the shortest rest anywhere is "+o.rest+" hours."],
+    ["Relief",o.relYear+" relief days a year across the team, on "+o.relOn+" of 28 days per cycle"+(o.relDbl?", doubled on "+o.relDbl:", never doubled")+"."],
+    ["Weekends",o.base.weekend]
   ].map(function(f){return '<div class="fact"><b>'+f[0]+'</b><span>'+f[1]+'</span></div>';}).join("");
-  var max=all[0].eff;
-  var h='<thead><tr><th>Rank</th><th>Shift</th><th>Shift hours</th><th>Days worked/yr</th><th>Days off/yr</th><th>People</th><th>Coverage</th><th>Efficiency</th><th>Overlap</th><th>Relief days/yr</th><th>Days off rotate</th><th>Weekend days</th><th>Best start</th><th>Rules met</th></tr></thead><tbody>';
-  all.forEach(function(o,i){
-    h+='<tr tabindex="0" data-k="'+o.key+'" class="'+(o.key===cur.key?"on":"")+'"><td><span class="pos'+(i===0?" first":"")+'">'+(i+1)+'</span></td><td><b>'+o.name+'</b></td><td>'+mixText(o)+'</td><td class="m"><b>'+o.workYear+'</b></td><td class="m"><b>'+o.offYear+'</b></td><td class="m">'+o.np+'</td><td class="m">'+hh(o.S)+'&ndash;'+hh(o.E)+' ('+o.win+'h)</td><td class="m">'+pct(o.eff)+'<span class="meter"><i style="width:'+(o.eff/max*100)+'%"></i></span></td><td class="m">'+(o.overlap?o.overlap+' h/day':'none')+'</td><td class="m">'+o.relYear+'</td><td><span class="pill'+(o.rot.fixed?'':' yes')+'">'+rotText(o,true)+'</span></td><td class="m">'+o.we.days+'/cycle'+(o.we.anyFull?', '+o.we.full+' full off':', no full off')+'</td><td class="m">'+bestStart[o.key].tieText+'</td><td>'+(function(){var c=checks(o),n=c.filter(function(x){return x.ok;}).length;return '<span class="rulecount'+(n<c.length?' bad':'')+'">'+n+'/'+c.length+'</span>'+(n<c.length?' <span class="note" style="color:var(--bad)">'+c.filter(function(x){return !x.ok;}).map(function(x){return x.name;}).join("; ")+'</span>':'');})()+'</td></tr>';
-  });
+  var h='<thead><tr><th>Shift</th><th>Shift hours</th><th>Days worked/yr</th><th>Days off/yr</th><th>People</th><th>Coverage</th><th>Efficiency</th><th>Overlap</th><th>Relief days/yr</th><th>Days off rotate</th><th>Weekend days</th><th>Rules met</th></tr></thead><tbody>';
+  h+='<tr class="on"><td><b>'+o.name+'</b></td><td>'+mixText(o)+'</td><td class="m"><b>'+o.workYear+'</b></td><td class="m"><b>'+o.offYear+'</b></td><td class="m">'+o.np+'</td><td class="m">'+hh(o.S)+'&ndash;'+hh(o.E)+' ('+o.win+'h)</td><td class="m">'+pct(o.eff)+'</td><td class="m">'+(o.overlap?o.overlap+' h/day':'none')+'</td><td class="m">'+o.relYear+'</td><td><span class="pill'+(o.rot.fixed?'':' yes')+'">'+rotText(o,true)+'</span></td><td class="m">'+o.we.days+'/cycle'+(o.we.anyFull?', '+o.we.full+' full off':', no full off')+'</td><td><span class="rulecount'+(n<cs.length?' bad':'')+'">'+n+'/'+cs.length+'</span>'+(n<cs.length?' <span class="note" style="color:var(--bad)">'+cs.filter(function(x){return !x.ok;}).map(function(x){return x.name;}).join("; ")+'</span>':'')+'</td></tr>';
   $("rank").innerHTML=h+'</tbody>';
-  Array.prototype.forEach.call($("rank").querySelectorAll("tbody tr"),function(tr){
-    function go(){$("len").value=tr.getAttribute("data-k");update();}
-    tr.addEventListener("click",go);tr.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});
-  });
 }
 function renderHead(){
   $("eyebrow").innerHTML="28-day cycle &middot; "+cur.np+" people &middot; 2,080 hours each";
   $("win").innerHTML=hh(cur.S)+"&ndash;"+hh(cur.E);
-  $("winnote").innerHTML=cur.win+" hours a day. "+(cur.overlap?"Days and Evenings overlap "+cur.overlap+" h a day at turnover.":"Back to back, no overlap.")+(cur.E===24&&cur.S+cur.base.span>24?" Capped at midnight.":"");
+  $("winnote").innerHTML=cur.win+" hours a day. "+(cur.overlap?"Days and Evenings overlap "+cur.overlap+" h a day at turnover.":"Back to back, no overlap.")+(cur.E>24?" Ends at "+hh(cur.E)+" the next morning.":"");
   $("lede").innerHTML="Covers "+hh(cur.S)+"&ndash;"+hh(cur.E)+" every day with "+cur.name+" shifts and "+cur.np+" people. One Days and one Evenings shift every day, with the spare hours set aside as relief days for vacation and sick coverage.";
   $("n4lbl").hidden=cur.np<5;
   $("stats").innerHTML=[
@@ -538,14 +496,16 @@ function renderYear(){
 }
 function renderCov(){
   var v=$("day").value,base=v?parse(v):today,mon=mondayOnOrBefore(base),h="";
-  $("covlbl").innerHTML="Week of "+(mon.getMonth()+1)+"/"+mon.getDate()+". Tinted band is the "+hh(cur.S)+"&ndash;"+hh(cur.E)+" window; striped bars are relief days at their default hours.";
+  $("covlbl").innerHTML="Week of "+(mon.getMonth()+1)+"/"+mon.getDate()+". Tinted band is the "+hh(cur.S)+"&ndash;"+hh(cur.E)+" window; striped bars are relief days at their default hours. Evenings wrap past midnight to the left edge.";
   var col={A:"var(--am)",P:"var(--pm)",S:"var(--sd)",E:"var(--pe)",F:"var(--muted)"},wl=cur.S/24*100,ww=cur.win/24*100;
   for(var d=0;d<7;d++){
     var day=new Date(mon);day.setDate(day.getDate()+d);var t=cycleDay(day),cs=[];
     for(var p=0;p<cur.np;p++){var c=code(p,t);if(c!==".")cs.push(c);}
     cs.sort(function(a,b){return ((cur.types[a].rel?1:0)-(cur.types[b].rel?1:0))||(cur.types[a].s-cur.types[b].s);});
-    h+='<div class="covrow"><span>'+DOW[d]+' '+(day.getMonth()+1)+'/'+day.getDate()+'</span><div class="bar" role="img" aria-label="'+DOW[d]+': '+cs.map(function(c){return cur.types[c].n;}).join(", ")+'"><div class="win" style="left:'+wl+'%;width:'+ww+'%"></div>';
-    cs.slice(0,3).forEach(function(c,i){var T=cur.types[c];h+='<div class="seg'+(T.rel?' rel':'')+'" style="left:'+(T.s/24*100)+'%;width:'+((T.e-T.s)/24*100)+'%;top:'+(3+i*11)+'px;'+(T.rel?'':'background:'+col[c])+'"></div>';});
+    h+='<div class="covrow"><span>'+DOW[d]+' '+(day.getMonth()+1)+'/'+day.getDate()+'</span><div class="bar" role="img" aria-label="'+DOW[d]+': '+cs.map(function(c){return cur.types[c].n;}).join(", ")+'"><div class="win" style="left:'+wl+'%;width:'+ww+'%"></div>'+(cur.E>24?'<div class="win" style="left:0;width:'+((cur.E-24)/24*100)+'%"></div>':'');
+    cs.slice(0,3).forEach(function(c,i){var T=cur.types[c];var cls='seg'+(T.rel?' rel':''),bg=(T.rel?'':'background:'+col[c]),top='top:'+(3+i*11)+'px;';
+      h+='<div class="'+cls+'" style="left:'+(T.s/24*100)+'%;width:'+((Math.min(T.e,24)-T.s)/24*100)+'%;'+top+bg+'"></div>';
+      if(T.e>24)h+='<div class="'+cls+'" style="left:0;width:'+((T.e-24)/24*100)+'%;'+top+bg+'"></div>';});
     h+='</div></div>';
   }
   $("cov").innerHTML=h;
